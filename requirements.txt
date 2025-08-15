@@ -1,0 +1,10 @@
+numpy==2.2.5
+pandas==2.3.1
+matplotlib==3.10.3
+seaborn==0.13.2
+holidays==0.64
+tqdm==4.67.1
+yfinance==0.2.65
+tqdm==4.67.1
+requests==2.32.4
+bs4==4.12.3
