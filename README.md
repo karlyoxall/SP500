@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This Github project uses 10 models evolved using [Antbear.ai](https://antbear.ai) Genetic Programming to predict which S&P 500 stocks will do well and which ones will do badly on a day-to-day basis. The S&P 500 performance is also included as a benchmark.
+This Github project uses 10 models evolved using [Antbear.ai](https://antbear.ai) Genetic Programming to predict which S&P 500 stocks will do well and which ones will do badly on a day-to-day basis. The S&P 500 performance is also included as a benchmark.  The No. of Tickers graph is the total number of tickers used for the best performance.
 
 ![Performance Comparison](./predictions.png)
 
