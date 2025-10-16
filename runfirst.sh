@@ -3,8 +3,8 @@
 myarray=(50 100 200)
 
 for i in "${myarray[@]}"; do
-  python ./datanalysis.py $i
-  python ./profitanalysis.py $i
+  python dataanalysis.py $i
+  python profitanalysis.py $i
 done
 
 for i in "${myarray[@]}"; do
