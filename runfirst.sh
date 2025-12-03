@@ -8,5 +8,5 @@ for i in "${myarray[@]}"; do
 done
 
 for i in "${myarray[@]}"; do
-  kitten icat $i.png
+  wezterm imgcat $i.png
 done

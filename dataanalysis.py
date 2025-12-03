@@ -62,7 +62,7 @@ def fetch_sp500_companies(filepath: Path) -> pd.DataFrame:
     )
     soup = BeautifulSoup(response.text, "html.parser")
     tables = soup.find_all("table")
-
+    
     companies_data = []
     for row in tables[0].tbody.find_all("tr"):
         cols = row.find_all("td")
