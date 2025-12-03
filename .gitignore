@@ -1,4 +1,5 @@
-/dailies
-/data
+dailies/**
+data/**
+!data/sp500_companies.csv
 /__pycache__
 README.pdf

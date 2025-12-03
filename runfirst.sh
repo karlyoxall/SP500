@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-myarray=(50 100 200)
+myarray=(50 100 200 250)
 
 for i in "${myarray[@]}"; do
   python dataanalysis.py $i
