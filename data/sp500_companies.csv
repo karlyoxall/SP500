@@ -43,6 +43,7 @@ APP,AppLovin,Information Technology,Application Software,"Palo Alto, California"
 APTV,Aptiv,Consumer Discretionary,Automotive Parts & Equipment,"Dublin, Ireland",2012-12-24,0001521332,1994
 ACGL,Arch Capital Group,Financials,Property & Casualty Insurance,"Hamilton, Bermuda",2022-11-01,0000947484,1995
 ADM,Archer Daniels Midland,Consumer Staples,Agricultural Products & Services,"Chicago, Illinois",1957-03-04,0000007084,1902
+ARES,Ares Management,Financials,Asset Management & Custody Banks,"Los Angeles, California",2025-12-11,0001176948,1977
 ANET,Arista Networks,Information Technology,Communications Equipment,"Santa Clara, California",2018-08-28,0001596532,2004
 AJG,Arthur J. Gallagher & Co.,Financials,Insurance Brokers,"Rolling Meadows, Illinois",2016-05-31,0000354190,1927
 AIZ,Assurant,Financials,Multi-line Insurance,"Atlanta, Georgia",2007-04-10,0001267238,1892
@@ -251,7 +252,6 @@ IBKR,Interactive Brokers,Financials,Investment Banking & Brokerage,"Greenwich, C
 ICE,Intercontinental Exchange,Financials,Financial Exchanges & Data,"Atlanta, Georgia",2007-09-26,0001571949,2000
 IFF,International Flavors & Fragrances,Materials,Specialty Chemicals,"New York City, New York",1976-03-31,0000051253,1958 (1889)
 IP,International Paper,Materials,Paper & Plastic Packaging Products & Materials,"Memphis, Tennessee",1957-03-04,0000051434,1898
-IPG,Interpublic Group of Companies (The),Communication Services,Advertising,"New York City, New York",1992-10-01,0000051644,1961 (1930)
 INTU,Intuit,Information Technology,Application Software,"Mountain View, California",2000-12-05,0000896878,1983
 ISRG,Intuitive Surgical,Health Care,Health Care Equipment,"Sunnyvale, California",2008-06-02,0001035267,1995
 IVZ,Invesco,Financials,Asset Management & Custody Banks,"Atlanta, Georgia",2008-08-21,0000914208,1935
@@ -265,7 +265,6 @@ J,Jacobs Solutions,Industrials,Construction & Engineering,"Dallas, Texas",2007-1
 JNJ,Johnson & Johnson,Health Care,Pharmaceuticals,"New Brunswick, New Jersey",1973-06-30,0000200406,1886
 JCI,Johnson Controls,Industrials,Building Products,"Cork, Ireland",2010-08-27,0000833444,1885
 JPM,JPMorgan Chase,Financials,Diversified Banks,"New York City, New York",1975-06-30,0000019617,2000 (1799 / 1871)
-K,Kellanova,Consumer Staples,Packaged Foods & Meats,"Chicago, Illinois",1989-09-11,0000055067,1906
 KVUE,Kenvue,Consumer Staples,Personal Care Products,"Skillman, New Jersey",2023-08-25,0001944048,2022 (Johnson & Johnson spinoff)
 KDP,Keurig Dr Pepper,Consumer Staples,Soft Drinks & Non-alcoholic Beverages,"Burlington, Massachusetts",2022-06-21,0001418135,1981
 KEY,KeyCorp,Financials,Regional Banks,"Cleveland, Ohio",1994-03-01,0000091576,1825
@@ -405,6 +404,7 @@ ROST,Ross Stores,Consumer Discretionary,Apparel Retail,"Dublin, California",2009
 RCL,Royal Caribbean Group,Consumer Discretionary,"Hotels, Resorts & Cruise Lines","Miami, Florida",2014-12-05,0000884887,1997
 SPGI,S&P Global,Financials,Financial Exchanges & Data,"New York City, New York",1957-03-04,0000064040,1917
 CRM,Salesforce,Information Technology,Application Software,"San Francisco, California",2008-09-15,0001108524,1999
+SNDK,Sandisk,Information Technology,"Technology Hardware, Storage & Peripherals","Milpitas, California",2025-11-28,0002023554,1988
 SBAC,SBA Communications,Real Estate,Telecom Tower REITs,"Boca Raton, Florida",2017-09-01,0001034054,1989
 SLB,Schlumberger,Energy,Oil & Gas Equipment & Services,"Houston, Texas",1957-03-04,0000087347,1926
 STX,Seagate Technology,Information Technology,"Technology Hardware, Storage & Peripherals","Dublin, Ireland",2012-07-02,0001137789,1979
