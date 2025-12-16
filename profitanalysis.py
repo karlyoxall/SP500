@@ -1,6 +1,5 @@
 import sys
 import time
-import argparse
 from itertools import tee
 from typing import List, Tuple, Optional
 from datetime import datetime, timedelta
@@ -13,6 +12,7 @@ import matplotlib.pyplot as mp
 from matplotlib.dates import DateFormatter
 import matplotlib.dates as mdates
 from numpy.typing import NDArray
+from tqdm import tqdm
 
 
 def GetDatePairs(start: str, end: str) -> List[Tuple[datetime, datetime]]:
@@ -25,7 +25,9 @@ def GetDatePairs(start: str, end: str) -> List[Tuple[datetime, datetime]]:
     return pairs
 
 
-def GrabData(B: List[Tuple[datetime, datetime]], top_n: int, throttle: float = 0.2) -> Tuple[
+def GrabData(
+    B: List[Tuple[datetime, datetime]], top_n: int, throttle: float = 0.2
+) -> Tuple[
     Optional[List[datetime]],
     List[float],
     List[float],
@@ -43,7 +45,7 @@ def GrabData(B: List[Tuple[datetime, datetime]], top_n: int, throttle: float = 0
 
     duration: Optional[List[datetime]] = None
 
-    for start, end in B:
+    for start, end in tqdm(B):
         spy: List[float] = []
         toppercentages: List[float] = []
         bottompercentages: List[float] = []
@@ -131,7 +133,7 @@ def main() -> None:
         print("Usage: python script.py <top_n>")
         print("Example: python script.py 200")
         sys.exit(1)
-    
+
     try:
         top_n = int(sys.argv[1])
         if top_n <= 0:
@@ -144,7 +146,7 @@ def main() -> None:
     latest: Optional[pd.DataFrame] = None
     B: List[Tuple[datetime, datetime]]
     x: Optional[pd.DataFrame] = None
-    snp500 = pd.read_csv("./data/sp500_companies.csv")
+
     filepath = Path(f"./dailies/latest_{top_n}.csv")
 
     if filepath.is_file():
@@ -214,7 +216,7 @@ def main() -> None:
 
                 ax1.legend()
 
-                mp.savefig(str(top_n)+".png")
+                mp.savefig(str(top_n) + ".png")
 
 
 if __name__ == "__main__":

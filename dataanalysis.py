@@ -62,7 +62,7 @@ def fetch_sp500_companies(filepath: Path) -> pd.DataFrame:
     )
     soup = BeautifulSoup(response.text, "html.parser")
     tables = soup.find_all("table")
-    
+
     companies_data = []
     for row in tables[0].tbody.find_all("tr"):
         cols = row.find_all("td")
@@ -126,8 +126,9 @@ def munge_data(
 
         # Normalize by SPY and log transform
         data /= spy_data
+        np.seterr(divide="ignore")
         data = np.log(data)
-
+        np.seterr(divide="warn")
         # Add day count
         data.insert(0, "Days", (data.index - data.index[0]).days)
 
@@ -194,7 +195,6 @@ def process_daily_predictions(
         data.index < end.strftime("%Y-%m-%d")
     )
     daily_data = data[mask].copy()
-    print(daily_data.shape)
 
     if daily_data.shape[0] == 0:
         return pd.DataFrame(), pd.DataFrame()
@@ -377,7 +377,6 @@ def main() -> None:
     # Process stock data
     start_date = date_pairs[0][0].strftime("%Y-%m-%d")
     end_date = date_pairs[-1][1].strftime("%Y-%m-%d")
-    print(start_date, end_date)
 
     spy_data = None
     processed_data = []
@@ -407,4 +406,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
