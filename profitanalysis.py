@@ -1,222 +1,175 @@
-import sys
-import time
-from itertools import tee
-from typing import List, Tuple, Optional
-from datetime import datetime, timedelta
-from pathlib import Path
+#!/usr/bin/env python
+import os
+import argparse
 import numpy as np
 import pandas as pd
-import holidays
 import yfinance as yf
-import matplotlib.pyplot as mp
-from matplotlib.dates import DateFormatter
+import holidays
+import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from numpy.typing import NDArray
+from pathlib import Path
+from itertools import tee
+from datetime import datetime, timedelta
 from tqdm import tqdm
 
+# --- Configuration ---
+DATA_DIR = Path("./data")
+DAILIES_DIR = Path("./dailies")
 
-def GetDatePairs(start: str, end: str) -> List[Tuple[datetime, datetime]]:
-    us_holidays = holidays.financial_holidays("NYSE")
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Backtest GP model performance with local caching.")
+    parser.add_argument("top_n", type=int, nargs='?', default=50)
+    return parser.parse_args()
+
+
+def get_date_pairs(start, end):
+    us_holidays = holidays.financial_holidays('NYSE')
     daterange = pd.bdate_range(start=start, end=end)
-    daterange_filtered = [c for c in daterange if c not in us_holidays]
-    a1, a2 = tee(daterange_filtered)
+    daterange = [c for c in daterange if c not in us_holidays]
+    if len(daterange) < 2: return []
+    a1, a2 = tee(daterange)
     next(a2)
-    pairs = list((z[0].to_pydatetime(), z[1].to_pydatetime()) for z in zip(a1, a2))
-    return pairs
+    return [(z[0].to_pydatetime(), z[1].to_pydatetime()) for z in zip(a1, a2)]
 
 
-def GrabData(
-    B: List[Tuple[datetime, datetime]], top_n: int, throttle: float = 0.2
-) -> Tuple[
-    Optional[List[datetime]],
-    List[float],
-    List[float],
-    List[float],
-    List[float],
-    List[float],
-]:
-    modeltype = "close"
-    target = "Close"
-    allspy: List[float] = [1.0]
-    alltoppercentages: List[float] = [1.0]
-    alltopnumbers: List[float] = [0.0]
-    allbottompercentages: List[float] = [1.0]
-    allbottomnumbers: List[float] = [0.0]
+def get_bulk_data(tickers, start, end):
+    """Downloads all ticker data in one go to minimize API calls."""
+    print(f"Downloading historical data for {len(tickers)} tickers...")
+    # Download as a multi-index dataframe (Columns: Price Type -> Ticker)
+    data = yf.download(tickers, start=start, end=end + timedelta(days=2), group_by='ticker', progress=True)
+    return data
 
-    duration: Optional[List[datetime]] = None
 
-    for start, end in tqdm(B):
-        spy: List[float] = []
-        toppercentages: List[float] = []
-        bottompercentages: List[float] = []
-        topfileformat = f"./dailies/top_{{0}}_{top_n}_{{1}}_{{2}}.csv"
-        bottomfileformat = f"./dailies/bottom_{{0}}_{top_n}_{{1}}_{{2}}.csv"
-        topsyms_df = pd.read_csv(
-            topfileformat.format(
-                modeltype, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
-            )
-        )
-        topnumbers: float = float(topsyms_df.shape[0])
-        topsyms: NDArray[np.str_] = topsyms_df.Sym.values
+def grab_performance_data(date_pairs, top_n, snp_df):
+    model_type = 'close'
+    target = 'Close'
 
-        stock = yf.Ticker("^GSPC")
-        stockhist = stock.history(start=start, end=end + timedelta(days=1))
-        x = stockhist[[target]].copy().pct_change(fill_method=None) + 1
-        x = x.dropna()
+    # 1. Identify all unique tickers needed for this backtest
+    all_needed_syms = set(['^GSPC'])
+    windows_to_process = []
 
-        if x.shape[0] == 0:
-            break
+    for (start, end) in date_pairs:
+        s_str, e_str = start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+        top_file = DAILIES_DIR / f"top_{model_type}_{top_n}_{s_str}_{e_str}.csv"
+        bot_file = DAILIES_DIR / f"bottom_{model_type}_{top_n}_{s_str}_{e_str}.csv"
 
-        if duration is None:
-            duration = [start]
-        duration.append(end)
-        spy.append(float(x[target].values[0]))
+        if top_file.exists() and bot_file.exists():
+            t_syms = pd.read_csv(top_file).Sym.tolist()
+            b_syms = pd.read_csv(bot_file).Sym.tolist()
+            all_needed_syms.update(t_syms)
+            all_needed_syms.update(b_syms)
+            windows_to_process.append((start, end, t_syms, b_syms))
 
-        for sym in topsyms:
-            stock = yf.Ticker(str(sym))
-            stockhist = stock.history(start=start, end=end + timedelta(days=1))
-            time.sleep(throttle)
-            x = stockhist[[target]].copy().pct_change(fill_method=None) + 1
-            x = x.dropna()
-            if x.shape[0] > 0:
-                toppercentages.append(float(x[target].values[0]))
-            else:
-                print(start, end, sym)
+    if not windows_to_process:
+        return pd.DataFrame()
 
-        bottomsyms_df = pd.read_csv(
-            bottomfileformat.format(
-                modeltype, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
-            )
-        )
-        bottomnumbers: float = float(bottomsyms_df.shape[0])
-        bottomsyms: NDArray[np.str_] = bottomsyms_df.Sym.values
+    # 2. Bulk Download
+    global_start = windows_to_process[0][0]
+    global_end = windows_to_process[-1][1]
+    cache = get_bulk_data(list(all_needed_syms), global_start, global_end)
 
-        for sym in bottomsyms:
-            stock = yf.Ticker(str(sym))
-            stockhist = stock.history(start=start, end=end + timedelta(days=1))
-            time.sleep(throttle)
-            x = stockhist[[target]].copy().pct_change(fill_method=None) + 1
-            x = x.dropna()
-            if x.shape[0] > 0:
-                bottompercentages.append(float(x[target].values[0]))
-            else:
-                print(start, end, sym)
+    # 3. Process Windows using Cache
+    results = {
+        "duration": [windows_to_process[0][0]],
+        "allspy": [1.0], "alltoppercentages": [1.0], "allbottompercentages": [1.0],
+        "alltopnumbers": [0.0], "allbottomnumbers": [0.0]
+    }
 
-        allspy.append(float(np.mean(spy)) if len(spy) > 0 else 1.0)
+    for (start, end, t_syms, b_syms) in tqdm(windows_to_process, desc="Calculating Returns"):
+        # Helper for vectorized return calculation
+        def calc_mean_return(symbols):
+            rets = []
+            for s in symbols:
+                try:
+                    # Accessing multi-index dataframe: cache[Ticker][PriceType]
+                    s_data = cache[s][target].loc[start:end + timedelta(days=1)]
+                    change = s_data.pct_change().dropna() + 1
+                    if not change.empty:
+                        rets.append(change.values[0])
+                except KeyError:
+                    continue
+            return np.mean(rets) if rets else 1.0
 
-        if len(toppercentages) == 0:
-            toppercentages = [1.0]
-        if np.mean(toppercentages) < 0.95:
-            print(start, end, topsyms, toppercentages)
-        alltoppercentages.append(float(np.mean(toppercentages)))
+        spy_ret = calc_mean_return(['^GSPC'])
+        top_ret = calc_mean_return(t_syms)
+        bot_ret = calc_mean_return(b_syms)
 
-        if len(bottompercentages) == 0:
-            bottompercentages = [1.0]
+        results["duration"].append(end)
+        results["allspy"].append(spy_ret)
+        results["alltoppercentages"].append(top_ret)
+        results["allbottompercentages"].append(bot_ret)
+        results["alltopnumbers"].append(len(t_syms))
+        results["allbottomnumbers"].append(len(b_syms))
 
-        allbottompercentages.append(float(np.mean(bottompercentages)))
-        alltopnumbers.append(topnumbers)
-        allbottomnumbers.append(bottomnumbers)
+    return pd.DataFrame(results)
 
-    return (
-        duration,
-        allspy,
-        alltoppercentages,
-        allbottompercentages,
-        alltopnumbers,
-        allbottomnumbers,
+
+def plot_results(df, top_n):
+    # (Plotting logic remains the same as previous version)
+    df['duration'] = pd.to_datetime(df['duration'])
+
+    fig, (ax1, ax2) = plt.subplots(
+        nrows=2,
+        sharex=True,
+        figsize=(15, 10),
+        gridspec_kw={'height_ratios': [3, 1]}
     )
 
+    # 1. Cumulative Performance
+    ax1.plot(df.duration, np.cumprod(df.allbottompercentages), label='Bottom Portfolio', color='red', alpha=0.6)
+    ax1.plot(df.duration, np.cumprod(df.alltoppercentages), label='Top Portfolio', color='green', linewidth=2)
+    ax1.plot(df.duration, np.cumprod(df.allspy), label='S&P 500 Index', color='black', linestyle='--')
 
-def main() -> None:
-    # Parse command line argument
-    if len(sys.argv) != 2:
-        print("Usage: python script.py <top_n>")
-        print("Example: python script.py 200")
-        sys.exit(1)
+    ax1.set_title(f"Cumulative Performance (TOP_N={top_n})", fontsize=16, pad=20)
+    ax1.set_ylabel("Growth of $1")
+    ax1.legend(loc='upper left')
+    ax1.grid(True, which='major', linestyle=':', alpha=0.6)
 
-    try:
-        top_n = int(sys.argv[1])
-        if top_n <= 0:
-            raise ValueError("top_n must be a positive integer")
-    except ValueError as e:
-        print(f"Error: {e}")
-        print("Please provide a valid positive integer")
-        sys.exit(1)
+    # 2. Consensus Ticker Count
+    ax2.bar(df.duration, df.alltopnumbers, color='skyblue', width=0.8)
+    ax2.set_ylabel("No. of Tickers")
+    ax2.set_xlabel("Date")
 
-    latest: Optional[pd.DataFrame] = None
-    B: List[Tuple[datetime, datetime]]
-    x: Optional[pd.DataFrame] = None
+    # --- Fix X-Axis Ticks ---
+    # Auto-determine best spacing (days, months, or years)
+    locator = mdates.AutoDateLocator(minticks=5, maxticks=12)
+    formatter = mdates.ConciseDateFormatter(locator)
 
-    filepath = Path(f"./dailies/latest_{top_n}.csv")
+    ax2.xaxis.set_major_locator(locator)
+    ax2.xaxis.set_major_formatter(formatter)
 
-    if filepath.is_file():
-        latest = pd.read_csv(f"./dailies/latest_{top_n}.csv")
-        latest_duration_str: str = str(latest.duration.values[-1])
-        B = GetDatePairs(
-            start=datetime.strptime(latest_duration_str, "%Y-%m-%d").strftime(
-                "%Y-%m-%d"
-            ),
-            end=(datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d"),
-        )
-        latest.duration = pd.to_datetime(latest.duration)
+    # Cleanly rotate and align the dates
+    fig.autofmt_xdate()
+
+    plt.tight_layout()
+    plt.savefig(str(top_n) + ".png")
+
+
+def main():
+    args = parse_args()
+    summary_file = DAILIES_DIR / f"latest_{args.top_n}.csv"
+
+    latest_df = pd.read_csv(summary_file) if summary_file.is_file() else None
+    start_date = latest_df['duration'].iloc[-1] if latest_df is not None else '2024-11-01'
+    if isinstance(start_date, str): start_date = datetime.strptime(start_date, "%Y-%m-%d")
+
+    date_pairs = get_date_pairs(start_date, datetime.today() - timedelta(days=1))
+    if not date_pairs:
+        if latest_df is not None: plot_results(latest_df, args.top_n)
+        return
+
+    new_data = grab_performance_data(date_pairs, args.top_n, None)
+
+    if latest_df is not None:
+        latest_df['duration'] = pd.to_datetime(latest_df['duration'])
+        new_data['duration'] = pd.to_datetime(new_data['duration'])
+        final_df = pd.concat([latest_df, new_data]).drop_duplicates(subset=['duration']).reset_index(drop=True)
     else:
-        B = GetDatePairs(
-            start=datetime.strptime("2024-11-01", "%Y-%m-%d").strftime("%Y-%m-%d"),
-            end=(datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d"),
-        )
+        final_df = new_data
 
-    if len(B) > 0:
-        print(f"Start: {B[0][0]}, End:{B[-1][1]}")
-        (
-            duration,
-            allspy,
-            alltoppercentages,
-            allbottompercentages,
-            alltopnumbers,
-            allbottomnumbers,
-        ) = GrabData(B, top_n)
-
-        if duration is not None:
-            x = pd.DataFrame(
-                data={
-                    "duration": duration,
-                    "allspy": allspy,
-                    "alltoppercentages": alltoppercentages,
-                    "allbottompercentages": allbottompercentages,
-                    "alltopnumbers": alltopnumbers,
-                    "allbottomnumbers": allbottomnumbers,
-                }
-            )
-
-            if len(x) > 1:
-                if latest is not None and len(latest) > 0:
-                    x = pd.concat(
-                        [
-                            latest,
-                            x.loc[x.duration.values > latest.duration.values[-1], :],
-                        ]
-                    ).reset_index(drop=True)
-                    x = x.drop_duplicates(ignore_index=True)
-                x.to_csv(f"./dailies/latest_{top_n}.csv", index=False)
-
-                fig, (ax1, ax2) = mp.subplots(nrows=2, sharex=True, figsize=(15, 10))
-                ax1.plot(x.duration, np.cumprod(x.allbottompercentages), label="worst")
-                ax1.plot(x.duration, np.cumprod(x.alltoppercentages), label="best")
-                ax1.plot(x.duration, np.cumprod(x.allspy), label="s&p")
-
-                date_form = DateFormatter("%m-%y")
-                ax1.xaxis.set_major_formatter(date_form)
-                ax1.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
-                ax2.bar(x.duration[1:], x.alltopnumbers[1:])
-                ax2.xaxis.set_major_formatter(date_form)
-                ax2.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
-
-                ax1.set(xlabel=None, ylabel=None, title="Cumulative Returns")
-                ax2.set(xlabel=None, ylabel=None, title="No. of Tickers")
-
-                ax1.legend()
-
-                mp.savefig(str(top_n) + ".png")
+    final_df.to_csv(summary_file, index=False)
+    plot_results(final_df, args.top_n)
 
 
 if __name__ == "__main__":
