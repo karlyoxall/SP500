@@ -123,6 +123,24 @@ def plot_results(df, top_n):
     # (Plotting logic remains the same as previous version)
     df['duration'] = pd.to_datetime(df['duration'])
 
+    # --- Metrics Calculations ---
+    def get_metrics(returns_series):
+        # 1. Sharpe Ratio (Annualized: assuming daily data, 252 trading days)
+        # Note: subtract 1 if your data is in '1.02' format, or keep as is if '0.02'
+        daily_returns = returns_series - 1
+        sharpe = np.sqrt(252) * daily_returns.mean() / daily_returns.std()
+
+        # 2. Max Drawdown
+        cum_ret = np.cumprod(returns_series)
+        running_max = np.maximum.accumulate(cum_ret)
+        drawdown = (cum_ret - running_max) / running_max
+        max_dd = drawdown.min()
+
+        return sharpe, max_dd
+
+    top_sharpe, top_dd = get_metrics(df.alltoppercentages)
+    spy_sharpe, spy_dd = get_metrics(df.allspy)
+
     # Reset to default then apply dark to ensure a clean state
     plt.rcParams.update(plt.rcParamsDefault)
     plt.style.use('dark_background')
@@ -139,6 +157,15 @@ def plot_results(df, top_n):
     ax1.plot(df.duration, np.cumprod(df.allbottompercentages), label='Bottom Portfolio', color='#FF3131', alpha=0.8)
     ax1.plot(df.duration, np.cumprod(df.alltoppercentages), label='Top Portfolio', color='#39FF14', linewidth=2)
     ax1.plot(df.duration, np.cumprod(df.allspy), label='S&P 500 Index', color='#FFFFFF', linestyle='--', alpha=0.7)
+
+    stats_text = (
+        f"Top Portfolio | Sharpe: {top_sharpe:.2f}, MaxDD: {top_dd:.1%}\n"
+        f"S&P 500 Index | Sharpe: {spy_sharpe:.2f}, MaxDD: {spy_dd:.1%}"
+    )
+    # Placing the box in the upper center
+    ax1.text(0.125, 0.1, stats_text, transform=ax1.transAxes,
+             fontsize=10, verticalalignment='top', horizontalalignment='center',
+             bbox=dict(boxstyle='round', facecolor='#222222', edgecolor='white', alpha=0.8))
 
     ax1.set_title(f"Cumulative Performance (top_n={top_n})", fontsize=16, pad=20, color='white')
     ax1.set_ylabel("Growth of $1", color='white')
