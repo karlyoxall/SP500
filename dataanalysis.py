@@ -177,7 +177,12 @@ def main():
         p = DAILIES_DIR / f"{prefix}_close_{top_n}_{ls_str}_{le_str}.csv"
         if p.exists():
             res = pd.read_csv(p)
-            print(f"{label}: https://uk.finance.yahoo.com/quote/{','.join(res.Sym.astype(str))}/")
+            if not res.empty and len(res.Sym) > 0:
+                symbols = ','.join(res.Sym.astype(str))
+                print(f"{label}: https://uk.finance.yahoo.com/quote/{symbols}/")
+            else:
+                print(f"{label}: No Recommendations")
+
         else:
             print(f"{label}: No consensus recommendations.")
 
