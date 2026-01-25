@@ -1,3 +1,4 @@
+/.idea
 dailies/**
 data/**
 !data/sp500_companies.csv
