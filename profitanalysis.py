@@ -1,15 +1,15 @@
 #!/usr/bin/env python
-import os
 import argparse
+from datetime import datetime, timedelta
+from itertools import tee
+from pathlib import Path
+
+import holidays
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import holidays
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from pathlib import Path
-from itertools import tee
-from datetime import datetime, timedelta
 from tqdm import tqdm
 
 # --- Configuration ---
@@ -50,12 +50,12 @@ def get_bulk_data(tickers, start, end):
     return data
 
 
-def grab_performance_data(date_pairs, top_n, snp_df):
+def grab_performance_data(date_pairs, top_n):
     model_type = "close"
     target = "Close"
 
     # 1. Identify all unique tickers needed for this backtest
-    all_needed_syms = set(["^GSPC"])
+    all_needed_syms = {"^GSPC"}
     windows_to_process = []
 
     for start, end in date_pairs:
@@ -121,7 +121,7 @@ def grab_performance_data(date_pairs, top_n, snp_df):
 
 def plot_results(df, top_n):
     # (Plotting logic remains the same as previous version)
-    df['duration'] = pd.to_datetime(df['duration'])
+    df["duration"] = pd.to_datetime(df["duration"])
 
     # --- Metrics Calculations ---
     def get_metrics(returns_series):
@@ -143,51 +143,84 @@ def plot_results(df, top_n):
 
     # Reset to default then apply dark to ensure a clean state
     plt.rcParams.update(plt.rcParamsDefault)
-    plt.style.use('dark_background')
+    plt.style.use("dark_background")
 
     fig, (ax1, ax2) = plt.subplots(
         nrows=2,
         sharex=True,
         figsize=(15, 10),
-        gridspec_kw={'height_ratios': [3, 1]},
-        facecolor='black'
+        gridspec_kw={"height_ratios": [3, 1]},
+        facecolor="black",
     )
 
     # 1. Cumulative Performance
-    ax1.plot(df.duration, np.cumprod(df.allbottompercentages), label='Bottom Portfolio', color='#FF3131', alpha=0.8)
-    ax1.plot(df.duration, np.cumprod(df.alltoppercentages), label='Top Portfolio', color='#39FF14', linewidth=2)
-    ax1.plot(df.duration, np.cumprod(df.allspy), label='S&P 500 Index', color='#FFFFFF', linestyle='--', alpha=0.7)
+    ax1.plot(
+        df.duration,
+        np.cumprod(df.allbottompercentages),
+        label="Bottom Portfolio",
+        color="#FF3131",
+        alpha=0.8,
+    )
+    ax1.plot(
+        df.duration,
+        np.cumprod(df.alltoppercentages),
+        label="Top Portfolio",
+        color="#39FF14",
+        linewidth=2,
+    )
+    ax1.plot(
+        df.duration,
+        np.cumprod(df.allspy),
+        label="S&P 500 Index",
+        color="#FFFFFF",
+        alpha=0.7,
+    )
 
     stats_text = (
         f"Top Portfolio | Sharpe: {top_sharpe:.2f}, MaxDD: {top_dd:.1%}\n"
         f"S&P 500 Index | Sharpe: {spy_sharpe:.2f}, MaxDD: {spy_dd:.1%}"
     )
     # Placing the box in the upper center
-    ax1.text(0.125, 0.1, stats_text, transform=ax1.transAxes,
-             fontsize=10, verticalalignment='top', horizontalalignment='center',
-             bbox=dict(boxstyle='round', facecolor='#222222', edgecolor='white', alpha=0.8))
+    ax1.text(
+        0.125,
+        0.1,
+        stats_text,
+        transform=ax1.transAxes,
+        fontsize=10,
+        verticalalignment="top",
+        horizontalalignment="center",
+        bbox=dict(boxstyle="round", facecolor="#222222", edgecolor="white", alpha=0.8),
+    )
 
-    ax1.set_title(f"Cumulative Performance (top_n={top_n})", fontsize=16, pad=20, color='white')
-    ax1.set_ylabel("Growth of $1", color='white')
+    ax1.set_title(
+        f"Cumulative Performance (top_n={top_n})", fontsize=16, pad=20, color="white"
+    )
+    ax1.set_ylabel("Growth of $1", color="white")
 
     # Legend with visible border
-    ax1.legend(loc='upper left', frameon=True, facecolor='#222222', edgecolor='white', labelcolor='white')
-    ax1.grid(True, which='major', linestyle=':', alpha=0.3, color='grey')
+    ax1.legend(
+        loc="upper left",
+        frameon=True,
+        facecolor="#222222",
+        edgecolor="white",
+        labelcolor="white",
+    )
+    ax1.grid(True, which="major", linestyle=":", alpha=0.3, color="grey")
 
     # 2. Consensus Ticker Count
-    ax2.bar(df.duration, df.alltopnumbers, color='#00D4FF', width=0.8, alpha=0.8)
-    ax2.set_ylabel("No. of Tickers", color='white')
-    ax2.set_xlabel("Date", color='white')
-    ax2.grid(True, axis='y', linestyle=':', alpha=0.2, color='grey')
+    ax2.bar(df.duration, df.alltopnumbers, color="#00D4FF", width=0.8, alpha=0.8)
+    ax2.set_ylabel("No. of Tickers", color="white")
+    ax2.set_xlabel("Date", color="white")
+    ax2.grid(True, axis="y", linestyle=":", alpha=0.2, color="grey")
 
     # Force tick colors to white
-    ax1.tick_params(colors='white', which='both')
-    ax2.tick_params(colors='white', which='both')
+    ax1.tick_params(colors="white", which="both")
+    ax2.tick_params(colors="white", which="both")
 
     # --- Fix X-Axis Ticks ---
     locator = mdates.AutoDateLocator(minticks=5, maxticks=12)
     formatter = mdates.ConciseDateFormatter(locator)
-    formatter.offset_formats[3] = '%Y'  # Ensure year is visible in concise format
+    formatter.offset_formats[3] = "%Y"  # Ensure year is visible in concise format
 
     ax2.xaxis.set_major_locator(locator)
     ax2.xaxis.set_major_formatter(formatter)
@@ -217,7 +250,7 @@ def main():
             plot_results(latest_df, args.top_n)
         return
 
-    new_data = grab_performance_data(date_pairs, args.top_n, None)
+    new_data = grab_performance_data(date_pairs, args.top_n)
 
     if latest_df is not None:
         latest_df["duration"] = pd.to_datetime(latest_df["duration"])
@@ -236,4 +269,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

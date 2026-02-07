@@ -1,18 +1,19 @@
 #!/usr/bin/env python
-import os
-import re
 import argparse
-import numpy as np
-import pandas as pd
-import holidays
-import yfinance as yf
-import requests
+import re
+from datetime import datetime, timedelta
+from itertools import tee
 from pathlib import Path
 from typing import List, Tuple, Optional
-from itertools import tee
-from datetime import datetime, timedelta
+
+import holidays
+import numpy as np
+import pandas as pd
+import requests
+import yfinance as yf
 from bs4 import BeautifulSoup
 from tqdm import tqdm
+
 from gp import GPTiny
 
 # --- Configuration & Paths ---
@@ -66,6 +67,7 @@ def get_snp500_list() -> pd.DataFrame:
 
 
 def munge_data(sym: str, spy_data: Optional[pd.DataFrame], start: str, end: str):
+    # noinspection PyBroadException
     try:
         if spy_data is None:
             spy_raw = yf.Ticker('^GSPC').history(start=start, end=end)
@@ -74,7 +76,7 @@ def munge_data(sym: str, spy_data: Optional[pd.DataFrame], start: str, end: str)
         stock_raw = yf.Ticker(sym).history(start=start, end=end)
         x = stock_raw[['Open', 'High', 'Low', 'Close', 'Volume']].pct_change(fill_method=None) + 1
 
-        x = np.log(x / spy_data)
+        x = pd.DataFrame(np.log(x / spy_data))
         x.insert(0, 'Days', (x.index - x.index[0]).days)
 
         for col in ['Open', 'Close', 'High', 'Low', 'Volume']:
@@ -93,6 +95,7 @@ def munge_data(sym: str, spy_data: Optional[pd.DataFrame], start: str, end: str)
         return None, spy_data
 
 
+# noinspection SpellCheckingInspection
 def main():
     args = parse_args()
     top_n = args.top_n
@@ -126,7 +129,7 @@ def main():
         if processed is not None:
             all_data.append(processed)
 
-    full_df = pd.concat(all_data, axis=0)
+    full_df = pd.DataFrame(pd.concat(all_data, axis=0))
     gp_model = GPTiny()
 
     # Dynamic method collection (GPI, GPII, ..., GPX)
@@ -166,8 +169,8 @@ def main():
             df.index.name = 'Sym'
             df.to_csv(path)
 
-        if top_inter: save_results(top_inter, out_top)
-        if bot_inter: save_results(bot_inter, out_bot)
+        save_results(top_inter, out_top)
+        save_results(bot_inter, out_bot)
 
     # Final Summary Output
     last_s, last_e = date_pairs[-1]
