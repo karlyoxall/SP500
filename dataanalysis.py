@@ -47,35 +47,47 @@ def get_date_pairs(start: str, end: str) -> List[Tuple[datetime, datetime]]:
 
 def get_snp500_list() -> pd.DataFrame:
     snp500 = None
-    filepath = Path("./data/sp500_companies.csv1")
-    if (False == filepath.is_file()):
+    filepath = Path("./data/sp500_companies.csv")
+    if False == filepath.is_file():
         headers = {
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'}
-        html_data = requests.get('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies', headers=headers).text
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+        }
+        html_data = requests.get(
+            "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies", headers=headers
+        ).text
         beautiful_soup = BeautifulSoup(html_data, "html.parser")
-        tables = beautiful_soup.find_all('table')
+        tables = beautiful_soup.find_all("table")
 
         S_P_500_companies = list([])
 
         for row in tables[0].tbody.find_all("tr"):
             col = row.find_all("td")
-            if (col != []):
-                Symbol = col[0].text.strip().replace('\n', '')
-                Security = col[1].text.strip().replace('\n', '')
-                Sector = col[2].text.strip().replace('\n', '')
-                Sub_Industry = col[3].text.strip().replace('\n', '')
-                Headquarters_Location = col[4].text.strip().replace('\n', '')
-                Date_first = col[5].text.strip().replace('\n', '')
-                CIK = col[6].text.strip().replace('\n', '')
-                Founded = col[7].text.strip().replace('\n', '')
+            if col != []:
+                Symbol = col[0].text.strip().replace("\n", "")
+                Security = col[1].text.strip().replace("\n", "")
+                Sector = col[2].text.strip().replace("\n", "")
+                Sub_Industry = col[3].text.strip().replace("\n", "")
+                Headquarters_Location = col[4].text.strip().replace("\n", "")
+                Date_first = col[5].text.strip().replace("\n", "")
+                CIK = col[6].text.strip().replace("\n", "")
+                Founded = col[7].text.strip().replace("\n", "")
                 S_P_500_companies.append(
-                    {"Symbol": Symbol, "Security": Security, "Sector": Sector, "Sub-Industry": Sub_Industry,
-                     "Headquarters": Headquarters_Location, "Date-Added": Date_first, "CIK": CIK, "Founded": Founded})
+                    {
+                        "Symbol": Symbol,
+                        "Security": Security,
+                        "Sector": Sector,
+                        "Sub-Industry": Sub_Industry,
+                        "Headquarters": Headquarters_Location,
+                        "Date-Added": Date_first,
+                        "CIK": CIK,
+                        "Founded": Founded,
+                    }
+                )
         snp500 = pd.DataFrame(data=S_P_500_companies)
-        snp500.Symbol = snp500.Symbol.str.replace('.', '-')
-        snp500.to_csv('./data/sp500_companies.csv', index=False)
+        snp500.Symbol = snp500.Symbol.str.replace(".", "-")
+        snp500.to_csv("./data/sp500_companies.csv", index=False)
     else:
-        snp500 = pd.read_csv('./data/sp500_companies.csv')
+        snp500 = pd.read_csv("./data/sp500_companies.csv")
     return snp500
 
 
