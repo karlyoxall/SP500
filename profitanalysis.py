@@ -254,6 +254,7 @@ def main():
 
     if latest_df is not None:
         latest_df["duration"] = pd.to_datetime(latest_df["duration"])
+
         new_data["duration"] = pd.to_datetime(new_data["duration"])
         final_df = (
             pd.concat([latest_df, new_data])

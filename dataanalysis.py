@@ -110,8 +110,9 @@ def munge_data(sym: str, spy_data: Optional[pd.DataFrame], start: str, end: str)
             )
             + 1
         )
-
+        np.seterr(divide='ignore')
         x = pd.DataFrame(np.log(x / spy_data))
+        np.seterr(divide='warn')
         x.insert(0, "Days", (x.index - x.index[0]).days)
 
         for col in ["Open", "Close", "High", "Low", "Volume"]:
@@ -161,7 +162,6 @@ def main():
         return
 
     snp500 = get_snp500_list()
-    exit(0)
     # Global data pull
     global_start = (date_pairs[0][0] - timedelta(weeks=6)).strftime("%Y-%m-%d")
     global_end = date_pairs[-1][1].strftime("%Y-%m-%d")
@@ -245,7 +245,7 @@ def main():
     # Final Summary Output
     last_s, last_e = date_pairs[-1]
     ls_str, le_str = last_s.strftime("%Y-%m-%d"), last_e.strftime("%Y-%m-%d")
-    print(f"\n--- Final Results ({ls_str} to {le_str}) ---\n")
+    print(f"\n--- Final Results ({ls_str} to {le_str}) ---")
     for label, prefix in [("Top", "top"), ("Bottom", "bottom")]:
         p = DAILIES_DIR / f"{prefix}_close_{top_n}_{ls_str}_{le_str}.csv"
         if p.exists():
@@ -259,6 +259,8 @@ def main():
         else:
             print(f"{label}: No consensus recommendations.")
 
+    print('-' * 48)
+    print("\n")
 
 if __name__ == "__main__":
     main()
