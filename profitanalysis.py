@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from itertools import tee
 from pathlib import Path
 
-import holidays
+from holidays import financial_holidays
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,7 +26,7 @@ def parse_args():
 
 
 def get_date_pairs(start, end):
-    us_holidays = holidays.financial_holidays("NYSE")
+    us_holidays = financial_holidays("NYSE")
     daterange = pd.bdate_range(start=start, end=end)
     daterange = [c for c in daterange if c not in us_holidays]
     if len(daterange) < 2:

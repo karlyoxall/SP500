@@ -6,7 +6,7 @@ from itertools import tee
 from pathlib import Path
 from typing import List, Tuple, Optional
 
-import holidays
+from holidays import financial_holidays
 import numpy as np
 import pandas as pd
 import requests
@@ -37,7 +37,7 @@ def parse_args():
 
 
 def get_date_pairs(start: str, end: str) -> List[Tuple[datetime, datetime]]:
-    us_holidays = holidays.financial_holidays("NYSE")
+    us_holidays = financial_holidays("NYSE")
     daterange = pd.bdate_range(start=start, end=end)
     daterange = [c for c in daterange if c not in us_holidays]
     a1, a2 = tee(daterange)
