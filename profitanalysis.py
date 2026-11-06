@@ -10,7 +10,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import warnings
 from tqdm import tqdm
+
+warnings.filterwarnings("ignore", category=pd.errors.Pandas4Warning)
 
 # --- Configuration ---
 DATA_DIR = Path("./data")

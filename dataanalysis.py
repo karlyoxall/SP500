@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 import argparse
+import warnings
+
+# Mute the specific upcoming Pandas 4.0 warnings
 import re
 from datetime import datetime, timedelta
 from itertools import tee
@@ -15,6 +18,8 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from gp import GPTiny
+
+warnings.filterwarnings("ignore", category=pd.errors.Pandas4Warning)
 
 # --- Configuration & Paths ---
 DATA_DIR = Path("./data")
@@ -110,9 +115,9 @@ def munge_data(sym: str, spy_data: Optional[pd.DataFrame], start: str, end: str)
             )
             + 1
         )
-        np.seterr(divide='ignore')
+        np.seterr(divide="ignore")
         x = pd.DataFrame(np.log(x / spy_data))
-        np.seterr(divide='warn')
+        np.seterr(divide="warn")
         x.insert(0, "Days", (x.index - x.index[0]).days)
 
         for col in ["Open", "Close", "High", "Low", "Volume"]:
@@ -126,10 +131,10 @@ def munge_data(sym: str, spy_data: Optional[pd.DataFrame], start: str, end: str)
                     x[col].rolling(pd.Timedelta(days=window)).std()
                 )
 
-        x.drop(columns=["Days"], inplace=True)
+        x = x.drop(columns=["Days"])
         x.insert(0, "Sym", sym)
         x["Target"] = x["Close"].shift(-1).fillna(-999)
-        x.replace([np.inf, -np.inf], np.nan, inplace=True)
+        x = x.replace([np.inf, -np.inf], np.nan)
         return x.dropna(), spy_data
     except Exception:
         return None, spy_data
@@ -259,8 +264,9 @@ def main():
         else:
             print(f"{label}: No consensus recommendations.")
 
-    print('-' * 48)
+    print("-" * 48)
     print("\n")
+
 
 if __name__ == "__main__":
     main()
